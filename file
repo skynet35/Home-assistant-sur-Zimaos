@@ -1,0 +1,56 @@
+# LES COMMANDES SSH DE LA VIDÉO (À copier-coller) :
+# Pour vous connecter en SSH, je vous recommande MobaXterm.
+
+# Identifier la VM et la clé USB (sur ZimaOS) :
+
+# Trouver le nom de la VM : 
+sudo virsh list --all (Mon ID de VM : 00e7d220)
+# Trouver l'ID de la clé Zigbee : 
+lsusb (Mon ID de clé : 10c4:ea60)
+
+# Attacher la clé à la VM : 
+
+echo "<hostdev mode='subsystem' type='usb' managed='yes'>
+  <source>
+    <vendor id='0x10c4'/>
+    <product id='0xea60'/>
+  </source>
+</hostdev>" | sudo tee /tmp/sonoff.xml
+
+# Injecter le fichier dans la VM
+
+sudo virsh attach-device 00e7d220 --file /tmp/sonoff.xml --current
+
+# La vérification finale (dans Home Assistant)
+
+ha hardware info | grep -i "ttyUSB"
+
+# Rendre le fichier XML permanent
+
+Sudo cp /tmp/sonoff.xml ~/sonoff.xml
+
+# Créer le script d'auto-connexion
+
+Sudo nano ~/attach_sonoff.sh
+
+# Et coller dans ce fichier :
+
+#!/bin/bash
+# Attendre que le service de virtualisation soit prêt
+sleep 30
+# Injecter la clé Sonoff dans la VM
+sudo virsh attach-device 00e7d220 --file /DATA/sonoff.xml --current
+
+# Rends le script exécutable :
+
+Sudo chmod +x ~/attach_sonoff.sh
+
+# Le script de démarrage automatique (attach_sonoff.sh) :
+
+sudo EDITOR=nano crontab -e
+
+# Coller ce code dans le fichier :
+@reboot /DATA/attach_sonoff.sh
+
+# Sauvegarde et quitte (Ctrl+O, Entrée, Ctrl+X).
+# N'oubliez pas d'ajuster le "sleep" et l'ID de votre VM !] 
