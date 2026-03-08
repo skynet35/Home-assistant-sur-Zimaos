@@ -33,13 +33,18 @@ Sudo cp /tmp/sonoff.xml ~/sonoff.xml
 
 Sudo nano ~/attach_sonoff.sh
 
-# Et coller dans ce fichier :
+# Et coller dans ce fichier (petite modification, on attends plus 30sec, on attends que la VM soit démarrée, car ca peut prendre 15sec comme 5min suivant les configurations de chacun :
 
-#!/bin/bash
-# Attendre que le service de virtualisation soit prêt
-sleep 30
-# Injecter la clé Sonoff dans la VM
-sudo virsh attach-device 00e7d220 --file /DATA/sonoff.xml --current
+echo "#!/bin/bash
+# On attend que la VM soit en mode 'running'
+while [ \$(sudo virsh domstate 00e7d220 | grep -c 'running') -eq 0 ]; do
+  echo 'Attente du démarrage de la VM...'
+  sleep 5
+done
+# Une petite pause de sécurité supplémentaire
+sleep 10
+# On injecte la clé
+sudo virsh attach-device 00e7d220 --file /DATA/sonoff.xml --current" | sudo tee /DATA/attach_sonoff.sh
 
 # Rends le script exécutable :
 
