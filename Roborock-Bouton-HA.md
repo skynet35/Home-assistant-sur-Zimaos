@@ -23,61 +23,60 @@ Ce dépôt contient les deux automatisations Home Assistant (YAML) permettant de
 
 ## 🛠️ Les Automatisations (YAML)
 
-> [!IMPORTANT]
-> Avant de copier les codes, pensez à adapter le `device_id` de votre bouton et l'entité `vacuum` de votre robot.
-
-### 📦 1. Automatisation : Lancement du nettoyage (Cuisine)
+### 📦 Codes YAML des Automatisations (Cuisine & Retour Base)
 <details>
-<summary><b>▶ Cliquez ici pour dérouler le code YAML</b></summary>
+<summary><b>▶ Cliquez ici pour dérouler les codes des automatisations</b></summary>
 
 ```yaml
+# ==============================================================================
+# AUTOMATISATION 1 : LANCEMENT DU NETTOYAGE (CUISINE)
+# Action : 1 clic normal ("toggle") -> attend 1.5s -> lance le robot
+# ==============================================================================
 alias: "Bouton Roborock - Cuisine (Senior)"
 description: "Lance la cuisine uniquement s'il n'y a pas un deuxième clic"
-mode: single # "single" ignore les nouveaux clics tant que le délai de 1.5s n'est pas expiré
+mode: single
 triggers:
   - trigger: event
-    event_type: zha_event # Écoute les événements bruts du protocole Zigbee via ZHA
+    event_type: zha_event
     event_data:
-      device_id: 061c11084375077bf9f0d41c78a44faa # ⚠️ À remplacer par votre ID d'appareil
-      command: "toggle" # Événement reçu lors d'un clic simple ou lent
+      device_id: 061c11084784077bf9f9641c78a75faa # ⚠️ À remplacer par votre ID d'appareil
+      command: "toggle"
 conditions:
   - condition: state
     entity_id: vacuum.roborock_qv_35a # ⚠️ À remplacer par votre entité de robot
-    state: "docked" # Sécurité : Le robot doit être sur sa base pour démarrer
+    state: "docked"
 actions:
-  - delay: "00:00:01.500" # Temps d'attente pour laisser une fenêtre au double-clic d'arrêt
+  - delay: "00:00:01.500"
   - action: vacuum.clean_area
     target:
       entity_id: vacuum.roborock_qv_35a
     data:
       cleaning_area_id:
-        - cuisine # Le nom de la pièce (doit être identique dans l'app Roborock et dans Zones HA)
+        - cuisine
 
-### 📦 2. Automatisation : Arrêt d'urgence et Retour à la Base
-<details>
-<summary><b>▶ Cliquez ici pour dérouler le code YAML</b></summary>
 
-```yaml
+# ==============================================================================
+# AUTOMATISATION 2 : ARRÊT D'URGENCE ET RETOUR A LA BASE
+# Action : 2 clics successifs (ou double-clic rapide) -> renvoie le robot au dock
+# ==============================================================================
 alias: "Bouton Roborock - Arrêt et Retour Base (Senior)"
 description: "Retour base avec double-clic rapide (On) OU deux clics successifs (Toggle)"
-mode: restart # Crucial : chaque clic redémarre le script à zéro et casse le délai précédent
+mode: restart
 triggers:
   - trigger: event
     event_type: zha_event
     event_data:
-      device_id: 061c11084375077bf9f0d41c78a44faa # ⚠️ À remplacer par votre ID d'appareil
-      command: "on" # Reçu lors d'un double-clic matériel ultra-rapide
+      device_id: 061c11084784077bf9f9641c78a75faa # ⚠️ À remplacer par votre ID d'appareil
+      command: "on"
   - trigger: event
     event_type: zha_event
     event_data:
-      device_id: 061c11084375077bf9f0d41c78a44faa # ⚠️ À remplacer par votre ID d'appareil
-      command: "toggle" # Reçu lors d'un clic normal
+      device_id: 061c11084784077bf9f9641c78a75faa # ⚠️ À remplacer par votre ID d'appareil
+      command: "toggle"
 conditions:
-  # CONDITION CLÉ : Bloque le script si le robot est déjà au dock (sauf s'il s'agit du double-clic rapide "on")
   - condition: template
     value_template: "{{ trigger.event.data.command == 'on' or states('vacuum.roborock_qv_35a') != 'docked' }}"
 actions:
-  # ÉTAPE 1 : Si le robot travaille, n'importe quel clic l'arrête immédiatement (Sécurité)
   - if:
       - condition: not
         conditions:
@@ -88,24 +87,16 @@ actions:
       - action: vacuum.stop
         target:
           entity_id: vacuum.roborock_qv_35a
-
-  # ÉTAPE 2 : Analyse de la vitesse et du type de clics
   - choose:
-      # Cas A : C'est le double-clic matériel rapide ("on"), on passe directement à la suite
       - conditions:
           - "{{ trigger.event.data.command == 'on' }}"
         sequence: [] 
-
-      # Cas B : C'est un clic normal ("toggle"). On attend de voir si un deuxième arrive.
       - conditions:
           - "{{ trigger.event.data.command == 'toggle' }}"
         sequence:
-          - delay: "00:00:01.800" # Fenêtre de temps accordée pour faire le deuxième clic
-          # Si le délai s'écoule SANS deuxième clic, on bloque l'exécution ici (c'était un clic simple)
+          - delay: "00:00:01.800"
           - condition: template
             value_template: "{{ false }}"
-
-  # ÉTAPE 3 : Action finale. Exécutée si l'attente a été brisée par un 2ème clic (mode restart)
   - action: vacuum.return_to_base
     target:
       entity_id: vacuum.roborock_qv_35a
