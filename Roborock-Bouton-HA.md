@@ -16,7 +16,7 @@ Pour rendre le système parfaitement utilisable au quotidien, le bouton est enca
   <img src="Images/Bouton_plaque_bois.jpg" alt="Support en bois gravé au laser" width="500">
 </p>
 
-📥 **[Télécharger le fichier vectoriel de découpe (PLAQUETTE CUISINE.svg)](Images/PLAQUETTE%20CUISINE.svg)**
+📥 **[Télécharger le fichier vectoriel de découpe (PLAQUETTE CUISINE.svg)](Images/Platine roborock_compact.svg)**
 
 ---
 
